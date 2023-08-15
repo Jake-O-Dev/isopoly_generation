@@ -131,7 +131,10 @@ fn main() {
 
   // let mut ismorphisms: [usize; MAX_FIELD_EXT] = [0; MAX_FIELD_EXT];
   let mut results = Vec::new();
+  let mut checked_polynomials = 0;
   for mut result in rx {
+    checked_polynomials += result.iter().fold(0, |acc, iso| acc + iso.size);
+    println!("Checked polynomials: {}/{} | Percentage: {:.3}%", checked_polynomials, POLYNOMIALS,  checked_polynomials as f64 / POLYNOMIALS as f64 * 100.0 );
     results.append(&mut result);
   }
   
