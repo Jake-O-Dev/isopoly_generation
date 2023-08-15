@@ -151,13 +151,14 @@ fn f3_bijection(mut index: u64) -> u64 {
 }
 
 pub fn generate_iso_polynomials(transform_lut: &Vec<Vec<u64>>) -> Vec<IsoPolynomial>{
-  let mut things = PackedBool::new(POLYNOMIALS + 8);
+  let mut things = PackedBool::new(usize::pow(3, 21));
 
   things.set(0, true);
 
   let mut iso_polys = Vec::new();
 
-  for i in 1..POLYNOMIALS/1000 {
+  println!("Allocated memory");
+  for i in 1..((usize::pow(3, 21))/1000) {
     if things.get(i) == false {
       things.set(i, true);
       let poly = Polynomial::new(f3_bijection(i as u64));
@@ -168,8 +169,10 @@ pub fn generate_iso_polynomials(transform_lut: &Vec<Vec<u64>>) -> Vec<IsoPolynom
         if things.get(f3_bijection_inverse(perm_poly.bits) as usize) == false {
           count += 1;
           things.set(f3_bijection_inverse(perm_poly.bits) as usize, true);
-          if perm_poly.bits.count_ones() < smallest_poly.bits.count_ones() {
-            smallest_poly = perm_poly;
+          if perm_poly.bits.count_ones() <= smallest_poly.bits.count_ones() {
+            if perm_poly.bits < smallest_poly.bits {
+              smallest_poly = perm_poly;
+            }
           }
         }
       }
@@ -178,4 +181,3 @@ pub fn generate_iso_polynomials(transform_lut: &Vec<Vec<u64>>) -> Vec<IsoPolynom
   }
   iso_polys
 }
-
