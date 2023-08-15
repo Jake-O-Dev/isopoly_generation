@@ -15,14 +15,14 @@ mod algebraic_types;
 mod polynomials;
 
 const DEGREE: usize = 5;
-const FIELD_SIZE: usize = 3;
+const FIELD_ORDER: usize = 3;
 
 const COEFF_BIT_SIZES: [usize; 5] = [1,1,1,2,2];
-const COEFF_BIT_SIZE: usize = COEFF_BIT_SIZES[FIELD_SIZE];
+const COEFF_BIT_SIZE: usize = COEFF_BIT_SIZES[FIELD_ORDER];
 
 // (q^(d+2 choose 2) - 1) / (q - 1)
 const DPLUS2_CHOOSE_2: usize = ((DEGREE+2) * (DEGREE+1)) / 2;
-const POLYNOMIALS: usize = (FIELD_SIZE.pow(DPLUS2_CHOOSE_2 as u32) - 1) / (FIELD_SIZE - 1);
+const POLYNOMIALS: usize = (FIELD_ORDER.pow(DPLUS2_CHOOSE_2 as u32) - 1) / (FIELD_ORDER - 1);
 
 const PRINTING: bool = true;
 const NUM_THREADS: usize = 8;
@@ -80,7 +80,7 @@ fn main() {
   // Polynomials
   //
   println!("Allocating memory");
-  let mut verified_polynomial = PackedBool::new(usize::pow(3, 21)+7);
+  let mut verified_polynomial = PackedBool::new(usize::pow(3, 21));
   verified_polynomial.set(0, true);
   println!("Allocated memory, do some time checking");
 
@@ -148,8 +148,14 @@ fn main() {
   
   
   let a: Vec<String> = results.iter().map(|t| t.to_string(&normal)).collect();
+  let begin = "# This file give you represants of all isomorphism classes of homogeneous projective polynomials over P_2 by applying PGL_3 and their class size.\n";
+  let begin_2 = "# Homogeneous Degree | Field Order\n";
+  let begin_3 = format!("{} | {}\n", DEGREE, FIELD_ORDER);
+  let begin_4 = "# Constant_(xpower)(ypower)(zpower) .... | Isomorphism Class size\n";
   let b = a.join("\n");
-  fs::write(FILE_NAME, b).expect("Unable to write file");
+
+  let c = begin.to_owned() + &begin_2.to_owned() + &begin_3 + &begin_4.to_owned() + &b;
+  fs::write(FILE_NAME, c).expect("Unable to write file");
 
   println!("Finished printing.");
   println!("Total time: {:?}", (Instant::now()-start_time));

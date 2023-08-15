@@ -1,8 +1,8 @@
 
-use crate::{DPLUS2_CHOOSE_2, algebraic_types::Matrix, DEGREE, FIELD_SIZE, COEFF_BIT_SIZE};
+use crate::{DPLUS2_CHOOSE_2, algebraic_types::Matrix, DEGREE, FIELD_ORDER, COEFF_BIT_SIZE};
 
 pub fn internal_add(a: u64,b: u64) -> u64 {
-  match FIELD_SIZE {
+  match FIELD_ORDER {
     2 => internal_add_f2(a,b),
     3 => internal_add_f3(a,b),
     _ => panic!("Field size not supported"),
@@ -173,11 +173,11 @@ pub fn exponentiate_linear_polynomial(a: u8, b: u8, c: u8, m: u8) -> Vec<Term> {
   for k1 in 0..=m {
     for k2 in 0..=(m-k1) {
       let k3 = m-k1-k2;
-      let coeff = binomial_coefficient(m, k1, k2, k3) % FIELD_SIZE as u8;
+      let coeff = binomial_coefficient(m, k1, k2, k3) % FIELD_ORDER as u8;
       if (coeff == 0)|| (k1>0 && a==0) || (k2>0 && b==0) || (k3>0 && c==0) {
         continue;
       }
-      let final_coeff = (coeff * a.pow(k1 as u32) * b.pow(k2 as u32) * c.pow(k3 as u32)) % FIELD_SIZE as u8;
+      let final_coeff = (coeff * a.pow(k1 as u32) * b.pow(k2 as u32) * c.pow(k3 as u32)) % FIELD_ORDER as u8;
       let term = Term { x_deg: k1, y_deg: k2, z_deg: k3, constant: final_coeff };
       terms.push(term);
     }
@@ -193,7 +193,7 @@ pub fn polynomial_product(a: Vec<Term>, b: Vec<Term>, c: Vec<Term>) -> Vec<Term>
         let term = Term { x_deg: t1.x_deg + t2.x_deg + t3.x_deg, 
                           y_deg: t1.y_deg + t2.y_deg + t3.y_deg, 
                           z_deg: t1.z_deg + t2.z_deg + t3.z_deg, 
-                          constant: (t1.constant * t2.constant * t3.constant) % FIELD_SIZE as u8};
+                          constant: (t1.constant * t2.constant * t3.constant) % FIELD_ORDER as u8};
         result.push(term);
       }
     }

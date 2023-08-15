@@ -2,7 +2,7 @@ use std::sync::RwLock;
 
 use std::num::Wrapping;
 
-use crate::{POLYNOMIALS, COEFF_BIT_SIZE, FIELD_SIZE, DPLUS2_CHOOSE_2};
+use crate::{POLYNOMIALS, COEFF_BIT_SIZE, FIELD_ORDER, DPLUS2_CHOOSE_2};
 use crate::polynomials::{Term, Polynomial};
 
 
@@ -36,7 +36,7 @@ impl Matrix {
 
 
   pub fn generate_pgl3() -> Vec<Matrix> {
-    match FIELD_SIZE {
+    match FIELD_ORDER {
       2 => Matrix::generate_pgl3_f2(),
       3 => Matrix::generate_pgl3_f3(),
       _ => panic!("Field size not supported"),
@@ -111,9 +111,9 @@ pub struct PackedBool {
 impl PackedBool {
   pub fn new(size: usize) -> PackedBool {
     let mut pack = PackedBool {
-      data: Vec::with_capacity(size/8)
+      data: Vec::with_capacity(size/8 + 8)
     };
-    for _ in 0..(size/8) {
+    for _ in 0..(size/8) + 8{
         pack.data.push(0);
     }
     pack
@@ -135,7 +135,7 @@ impl PackedBool {
 }
 
 fn index_to_poly_map(index: u64) -> u64 {
-  match FIELD_SIZE {
+  match FIELD_ORDER {
     2 => index,
     3 => f3_bijection(index),
     _ => panic!("Field size not supported"),
@@ -143,7 +143,7 @@ fn index_to_poly_map(index: u64) -> u64 {
 }
 
 fn poly_to_index_map(poly: u64) -> u64 {
-  match FIELD_SIZE {
+  match FIELD_ORDER {
     2 => poly,
     3 => f3_bijection_inverse(poly),
     _ => panic!("Field size not supported"),
@@ -151,7 +151,7 @@ fn poly_to_index_map(poly: u64) -> u64 {
 }
 
 fn poly_next(poly: u64) -> u64 {
-  match FIELD_SIZE {
+  match FIELD_ORDER {
     2 => poly + 1,
     3 => next_f3(poly),
     _ => panic!("Field size not supported"),
@@ -183,33 +183,33 @@ fn f3_bijection(mut index: u64) -> u64 {
   res
 }
 
-// pub fn generate_iso_polynomials(transform_lut: &Vec<Vec<u64>>) -> Vec<IsoPolynomial>{
+pub fn generate_iso_polynomials(transform_lut: &Vec<Vec<u64>>) -> Vec<IsoPolynomial>{
+  let mut things = PackedBool::new(usize::pow(3, 21)+7);
 
-//   let mut iso_polys = Vec::new();
-
-//   for i in 1..((usize::pow(3, 21))/1000) {
-//     if things.get(i) == false {
-//       things.set(i, true);
-//     let poly = Polynomial::new(f3_bijection(i as u64));
-//       let mut count = 1;
-//       let mut smallest_poly = poly;
-//       for i in 0..transform_lut.len() { // loop over matrices
-//         let perm_poly = poly.transform_by_matrix(&transform_lut[i]);
-//         if things.get(f3_bijection_inverse(perm_poly.bits) as usize) == false {
-//           count += 1;
-//           things.set(f3_bijection_inverse(perm_poly.bits) as usize, true);
-//           if perm_poly.bits.count_ones() <= smallest_poly.bits.count_ones() {
-//             if perm_poly.bits < smallest_poly.bits {
-//               smallest_poly = perm_poly;
-//             }
-//           }
-//         }
-//       }
-//       iso_polys.push(IsoPolynomial { representative: smallest_poly, size: count});
-//     }
-//   }
-//   iso_polys
-// }
+  let mut iso_polys = Vec::new();
+  for i in 1..((usize::pow(3, 21))/1000) {
+    if things.get(i) == false {
+      things.set(i, true);
+    let poly = Polynomial::new(f3_bijection(i as u64));
+      let mut count = 1;
+      let mut smallest_poly = poly;
+      for i in 0..transform_lut.len() { // loop over matrices
+        let perm_poly = poly.transform_by_matrix(&transform_lut[i]);
+        if things.get(f3_bijection_inverse(perm_poly.bits) as usize) == false {
+          count += 1;
+          things.set(f3_bijection_inverse(perm_poly.bits) as usize, true);
+          if perm_poly.bits.count_ones() <= smallest_poly.bits.count_ones() {
+            if perm_poly.bits < smallest_poly.bits {
+              smallest_poly = perm_poly;
+            }
+          }
+        }
+      }
+      iso_polys.push(IsoPolynomial { representative: smallest_poly, size: count});
+    }
+  }
+  iso_polys
+}
 
 
 pub fn find_isomorphisms(start: usize, end: usize, transform_lut: &Vec<Vec<u64>>, verified: &RwLock<PackedBool>) -> Vec<IsoPolynomial> {
