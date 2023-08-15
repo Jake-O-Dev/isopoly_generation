@@ -94,16 +94,36 @@ impl Polynomial {
   pub fn transform_by_matrix(self, transform_lut: &Vec<u64>) -> Polynomial {
     let mut bits = 0;
     for i in 0..DPLUS2_CHOOSE_2 {
-      if (self.bits >> (2*i)) & 1 == 1 {
-        bits = internal_add_f3(bits, transform_lut[i]);
-      }
-      if self.bits >> (2*i) & 2 == 2 {
-        bits = internal_add_f3(bits, transform_lut[i]);
-        bits = internal_add_f3(bits, transform_lut[i]);
-        // TODO: change this to *2 instead of add twice.
+      let coeff = (self.bits >> (i*COEFF_BIT_SIZE)) & (!(!0 << COEFF_BIT_SIZE)) % FIELD_ORDER as u64;
+      if coeff > 0 {
+        let new_bits = Polynomial::multiply_bits_by_constant(transform_lut[i], coeff);
+        bits = internal_add(bits, new_bits);
       }
     }
     Polynomial { bits: bits }
+  }
+
+  pub fn multiply_bits_by_constant(bits: u64, constant: u64) -> u64 {
+    match constant % FIELD_ORDER as u64 {
+      0 => 0,
+      1 => bits,
+      _ => {
+        match FIELD_ORDER {
+          2 => bits,
+          3 => Polynomial::multiply_bits_by_2_f3(bits),
+          _ => panic!("Field size not supported"),
+        }
+      }
+    }
+  }
+    
+
+  fn multiply_bits_by_2_f3(bits: u64) -> u64 {
+    const M1: u64 = 0x5555555555555555; 
+    const M2: u64 = 0xAAAAAAAAAAAAAAAA;
+    let a1 = (bits & M2) >> 1;
+    let a2 = (bits & M1) << 1;
+    a1 | a2
   }
 }
 

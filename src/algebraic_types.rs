@@ -189,10 +189,12 @@ pub fn generate_iso_polynomials(transform_lut: &Vec<Vec<u64>>) -> Vec<IsoPolynom
   let mut iso_polys = Vec::new();
   let mut checked_polynomials = 0;
   let mut checkpoint = 0;
+  let mut bits = 0;
   for i in 1..((usize::pow(3, 21))/1000) {
+    bits = poly_next(bits);
     if things.get(i) == false {
       things.set(i, true);
-      let poly = Polynomial::new(index_to_poly_map(i as u64));
+      let poly = Polynomial::new(bits);
       
       let mut count = 1;
       let mut smallest_poly = poly;
