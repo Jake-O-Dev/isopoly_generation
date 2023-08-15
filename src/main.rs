@@ -20,9 +20,9 @@ const FIELD_SIZE: usize = 3;
 const COEFF_BIT_SIZES: [usize; 5] = [1,1,1,2,2];
 const COEFF_BIT_SIZE: usize = COEFF_BIT_SIZES[FIELD_SIZE];
 
-// (q^21 - 1) / (q - 1)
-const POLYNOMIALS: usize = (FIELD_SIZE.pow(21) - 1) / (FIELD_SIZE - 1);
+// (q^(d+2 choose 2) - 1) / (q - 1)
 const DPLUS2_CHOOSE_2: usize = ((DEGREE+2) * (DEGREE+1)) / 2;
+const POLYNOMIALS: usize = (FIELD_SIZE.pow(DPLUS2_CHOOSE_2 as u32) - 1) / (FIELD_SIZE - 1);
 
 const PRINTING: bool = true;
 const NUM_THREADS: usize = 1;
