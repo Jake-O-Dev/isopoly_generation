@@ -35,40 +35,15 @@ fn main() {
   let start_time = Instant::now();
 
   // Matrices
-  println!("Generate matrices");
+  println!("Generating matrices...");
   let pgl3 = Matrix::generate_pgl3();
   println!("Number of matrices: {}", pgl3.len());
   println!();
 
   // Lookup Tables
-  println!("Generate lookup stuff");
+  println!("Generating lookup tables...");
   let normal = Polynomial::generate_default_lut();
- 
-  /* <> test transform lut <>
-  // 
-  // let i = 2;
-  // let j = 6;
-  // let matrix1 = pgl3[i];
-  // let term1 = normal[j].create_similar(1);
-  // //let transformed = transform_lut[i][j];
-  // matrix1.print();
-  // println!("{}", term1.str());
-  // println!();
-  // let transformed_bits = term1.transform_by_matrix(&matrix1, &normal);
-  // let trans_poly = Polynomial::new(transformed_bits);
-  // println!();
-  // println!("{transformed_bits:b}");
-  // trans_poly.print(&normal);
-  // //println!("{:b} {:b}", transformed, term1.transform_by_matrix(&matrix1, &normal));
-
-  // //Polynomial::new(transformed).print(&normal);
-  // return;
-  */
-
-  let transform_lut = generate_transform_lut(&pgl3, &normal); // REMOVE THIS LATER
-
-
-
+  let transform_lut = generate_transform_lut(&pgl3, &normal);
   let lookup_time = Instant::now();
   println!("Generating took: {:?}", (lookup_time-start_time));
   println!();
@@ -100,5 +75,7 @@ fn main() {
   let b = a.join("\n");
   fs::write(FILE_NAME, b).expect("Unable to write file");
 
+  println!("Finished printing.");
+  println!("Total time: {:?}", (Instant::now()-start_time));
   
 }
