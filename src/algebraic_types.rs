@@ -159,7 +159,7 @@ fn poly_next(poly: u64) -> u64 {
 }
 
 pub fn next_f3(bits: u64) -> u64 {
-  let t = ((bits ^ 0xAAAA) | 0x5555) >> 1;
+  let t = ((bits ^ 0xAAAAAAAAAAAAAAAA) | 0x5555555555555555) >> 1;
   (Wrapping(bits) - Wrapping(t)).0 & t
 }
 
@@ -190,11 +190,12 @@ pub fn generate_iso_polynomials(transform_lut: &Vec<Vec<u64>>) -> Vec<IsoPolynom
   let mut checked_polynomials = 0;
   let mut checkpoint = 0;
   let mut bits = 0;
-  for i in 1..((usize::pow(3, 21))/1000000) {
+  for i in 1..((usize::pow(3, 21))/1000) {
     bits = poly_next(bits);
     if things.get(i) == false {
       things.set(i, true);
       let poly = Polynomial::new(bits);
+      // let poly = Polynomial::new(index_to_poly_map(i as u64));
       
       let mut count = 1;
       let mut smallest_poly = poly;
