@@ -1,6 +1,8 @@
 use std::sync::RwLock;
 
-use crate::{POLYNOMIALS, COEFF_BIT_SIZE, FIELD_SIZE};
+use std::num::Wrapping;
+
+use crate::{POLYNOMIALS, COEFF_BIT_SIZE, FIELD_SIZE, DPLUS2_CHOOSE_2};
 use crate::polynomials::{Term, Polynomial};
 
 
@@ -130,6 +132,35 @@ impl PackedBool {
       self.data[index / 8] = partial & (0xFF ^ (1 << index % 8))
     }
   }
+}
+
+fn index_to_poly_map(index: u64) -> u64 {
+  match FIELD_SIZE {
+    2 => index,
+    3 => f3_bijection(index),
+    _ => panic!("Field size not supported"),
+  }
+}
+
+fn poly_to_index_map(poly: u64) -> u64 {
+  match FIELD_SIZE {
+    2 => poly,
+    3 => f3_bijection_inverse(poly),
+    _ => panic!("Field size not supported"),
+  }
+}
+
+fn poly_next(poly: u64) -> u64 {
+  match FIELD_SIZE {
+    2 => poly + 1,
+    3 => next_f3(poly),
+    _ => panic!("Field size not supported"),
+  }
+}
+
+pub fn next_f3(bits: u64) -> u64 {
+  let t = ((bits ^ 0xaa) | 0x55) >> 1;
+  (Wrapping(bits) - Wrapping(t)).0 & t
 }
 
 fn f3_bijection_inverse(index: u64) -> u64 {
