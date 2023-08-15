@@ -24,8 +24,8 @@ const COEFF_BIT_SIZE: usize = COEFF_BIT_SIZES[FIELD_SIZE];
 const DPLUS2_CHOOSE_2: usize = ((DEGREE+2) * (DEGREE+1)) / 2;
 const POLYNOMIALS: usize = (FIELD_SIZE.pow(DPLUS2_CHOOSE_2 as u32) - 1) / (FIELD_SIZE - 1);
 
-const PRINTING: bool = true;
-const NUM_THREADS: usize = 1;
+const PRINTING: bool = false;
+const NUM_THREADS: usize = 2;
 const CHUNK_SIZE: usize = 1024*64;
 
 const FILE_NAME: &str = "./output.txt";
@@ -131,7 +131,10 @@ fn main() {
 
   // let mut ismorphisms: [usize; MAX_FIELD_EXT] = [0; MAX_FIELD_EXT];
   let mut results = Vec::new();
+  let mut checked_polynomials = 0;
   for mut result in rx {
+    checked_polynomials += result.iter().fold(0, |acc, iso| acc + iso.size);
+    println!("Checked polynomials: {}/{} | Percentage: {:.3}%", checked_polynomials, POLYNOMIALS,  checked_polynomials as f64 / POLYNOMIALS as f64 * 100.0 );
     results.append(&mut result);
   }
   
