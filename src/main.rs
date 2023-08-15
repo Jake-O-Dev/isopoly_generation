@@ -1,7 +1,9 @@
-use std::{time::Instant, fs};
+use std::{time::Instant, fs, sync::{mpsc, Arc, Mutex, RwLock}, thread};
+
+use algebraic_types::IsoPolynomial;
 
 use crate::{
-  algebraic_types::{generate_iso_polynomials, Matrix},
+  algebraic_types::{Matrix, PackedBool, find_isomorphisms},
   polynomials::{Polynomial, generate_transform_lut}
 };
 
@@ -21,6 +23,10 @@ const COEFF_BIT_SIZE: usize = COEFF_BIT_SIZES[FIELD_SIZE];
 // (q^21 - 1) / (q - 1)
 const POLYNOMIALS: usize = (FIELD_SIZE.pow(21) - 1) / (FIELD_SIZE - 1);
 const DPLUS2_CHOOSE_2: usize = ((DEGREE+2) * (DEGREE+1)) / 2;
+
+const PRINTING: bool = true;
+const NUM_THREADS: usize = 1;
+const CHUNK_SIZE: usize = 1024*64;
 
 const FILE_NAME: &str = "./output.txt";
 
@@ -67,26 +73,94 @@ fn main() {
 
   let transform_lut = generate_transform_lut(&pgl3, &normal); // REMOVE THIS LATER
 
-
-
   let lookup_time = Instant::now();
   println!("Generating took: {:?}", (lookup_time-start_time));
   println!();
+  
+  
+  //
+  // Chunks
+  //
+  println!("Generate chunks, start threads and count smooth polynomials!");
+  
+  let mut chunks = Vec::new();
+  let mut start = 0;
+  while start < POLYNOMIALS { // TODO: CHECK THIS RANGE
+    chunks.push(CustomChunk {
+        start,
+        end: std::cmp::min(start + CHUNK_SIZE, POLYNOMIALS), // end is exclusive
+    });
+    start += CHUNK_SIZE;
+  }
+  let chunk_length = chunks.len();
+  chunks.reverse();
 
+  println!("Amount of polynomials to verify: {} | Amount of chunks: {} | Amount of threads: {}", POLYNOMIALS, chunks.len(), NUM_THREADS);
+  println!();
+                
 
   //
   // Polynomials
   //
-  println!("Generate isomorphic polynomials");
+  println!("Allocating memory");
+  let mut verified_polynomial = PackedBool::new(usize::pow(3, 21)+7);
+  verified_polynomial.set(0, true);
+  println!("Allocated memory, do some time checking");
+
+
+  // Thread arc stuff
+  let (tx, rx) = mpsc::channel();
+
+  let arc_transform_lut = Arc::new(transform_lut);
+  let arc_verified = Arc::new(RwLock::new(verified_polynomial));
+  let arc_chunks = Arc::new(Mutex::new(chunks));
   
 
-  let iso_polys = generate_iso_polynomials(&transform_lut);
   
-  println!("Generated {} isomorphic polynomials", iso_polys.len());
+  for _ in 0..NUM_THREADS {
+      // Clone the sender to move into each thread
+      let a_tx = tx.clone();
+
+      // Clone the recomputed results to move into each thread locally
+      let local_transform_lut = arc_transform_lut.clone();
+      let local_verified = arc_verified.clone();
+      let local_chunks = arc_chunks.clone();
+
+      // Spawn a new thread
+      thread::spawn(move || {
+        // let lol = &local_chunks.lock().unwrap().pop();
+        loop {
+          let (start,end, index);
+          {
+            let chunk_vec = &mut local_chunks.lock().unwrap();
+            let chunk = chunk_vec.pop();
+            match chunk {
+              Some(t) => { start = t.start; end = t.end; index = chunk_vec.len()}
+              None => {return;}
+            }
+          }
+          
+          let result =  
+          find_isomorphisms(start, end, &local_transform_lut, &local_verified);
+          if PRINTING {
+            println!("Result size: {} | Chunks left: {index} | Total Chunks: {chunk_length} | Estimated time: {:.2}", result.len(), index as f64 * (Instant::now() - lookup_time).as_secs_f64() / (chunk_length - index) as f64);
+          }
+          a_tx.send(result).unwrap();      
+        }
+      });
+    }
+
+  drop(tx);
+
+  // let mut ismorphisms: [usize; MAX_FIELD_EXT] = [0; MAX_FIELD_EXT];
+  let mut results = Vec::new();
+  for mut result in rx {
+    results.append(&mut result);
+  }
   
   // Counting the polys for verification
   let mut sum: u32 = 0;
-  for isopoly in &iso_polys {
+  for isopoly in &results {
     let (_, size) = isopoly.deconstruct();
     sum += size;
   }
@@ -96,9 +170,10 @@ fn main() {
   println!();
   
   
-  let a: Vec<String> = iso_polys.iter().map(|t| t.to_string(&normal)).collect();
+  let a: Vec<String> = results.iter().map(|t| t.to_string(&normal)).collect();
   let b = a.join("\n");
   fs::write(FILE_NAME, b).expect("Unable to write file");
 
   
 }
+

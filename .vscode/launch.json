@@ -1,0 +1,45 @@
+{
+  // Use IntelliSense to learn about possible attributes.
+  // Hover to view descriptions of existing attributes.
+  // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "type": "lldb",
+      "request": "launch",
+      "name": "Debug executable 'isopoly_generation'",
+      "cargo": {
+        "args": [
+          "build",
+          "--bin=isopoly_generation",
+          "--package=isopoly_generation"
+        ],
+        "filter": {
+          "name": "isopoly_generation",
+          "kind": "bin"
+        }
+      },
+      "args": [],
+      "cwd": "${workspaceFolder}"
+    },
+    {
+      "type": "lldb",
+      "request": "launch",
+      "name": "Debug unit tests in executable 'isopoly_generation'",
+      "cargo": {
+        "args": [
+          "test",
+          "--no-run",
+          "--bin=isopoly_generation",
+          "--package=isopoly_generation"
+        ],
+        "filter": {
+          "name": "isopoly_generation",
+          "kind": "bin"
+        }
+      },
+      "args": [],
+      "cwd": "${workspaceFolder}"
+    }
+  ]
+}

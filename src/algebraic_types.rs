@@ -1,3 +1,5 @@
+use std::sync::RwLock;
+
 use crate::{POLYNOMIALS, COEFF_BIT_SIZE, FIELD_SIZE};
 use crate::polynomials::{Term, Polynomial};
 
@@ -150,34 +152,86 @@ fn f3_bijection(mut index: u64) -> u64 {
   res
 }
 
-pub fn generate_iso_polynomials(transform_lut: &Vec<Vec<u64>>) -> Vec<IsoPolynomial>{
-  let mut things = PackedBool::new(usize::pow(3, 21));
+// pub fn generate_iso_polynomials(transform_lut: &Vec<Vec<u64>>) -> Vec<IsoPolynomial>{
 
-  things.set(0, true);
+//   let mut iso_polys = Vec::new();
 
-  let mut iso_polys = Vec::new();
+//   for i in 1..((usize::pow(3, 21))/1000) {
+//     if things.get(i) == false {
+//       things.set(i, true);
+//     let poly = Polynomial::new(f3_bijection(i as u64));
+//       let mut count = 1;
+//       let mut smallest_poly = poly;
+//       for i in 0..transform_lut.len() { // loop over matrices
+//         let perm_poly = poly.transform_by_matrix(&transform_lut[i]);
+//         if things.get(f3_bijection_inverse(perm_poly.bits) as usize) == false {
+//           count += 1;
+//           things.set(f3_bijection_inverse(perm_poly.bits) as usize, true);
+//           if perm_poly.bits.count_ones() <= smallest_poly.bits.count_ones() {
+//             if perm_poly.bits < smallest_poly.bits {
+//               smallest_poly = perm_poly;
+//             }
+//           }
+//         }
+//       }
+//       iso_polys.push(IsoPolynomial { representative: smallest_poly, size: count});
+//     }
+//   }
+//   iso_polys
+// }
 
-  println!("Allocated memory");
-  for i in 1..((usize::pow(3, 21))/1000) {
-    if things.get(i) == false {
-      things.set(i, true);
-      let poly = Polynomial::new(f3_bijection(i as u64));
-      let mut count = 1;
-      let mut smallest_poly = poly;
-      for i in 0..transform_lut.len() { // loop over matrices
-        let perm_poly = poly.transform_by_matrix(&transform_lut[i]);
-        if things.get(f3_bijection_inverse(perm_poly.bits) as usize) == false {
-          count += 1;
-          things.set(f3_bijection_inverse(perm_poly.bits) as usize, true);
-          if perm_poly.bits.count_ones() <= smallest_poly.bits.count_ones() {
-            if perm_poly.bits < smallest_poly.bits {
-              smallest_poly = perm_poly;
-            }
-          }
+
+pub fn find_isomorphisms(start: usize, end: usize, transform_lut: &Vec<Vec<u64>>, verified: &RwLock<PackedBool>) -> Vec<IsoPolynomial> {
+  let mut results: Vec<IsoPolynomial> = Vec::new();
+  
+  let mut i = start;
+
+  'outer: while i < end {
+    let poly = {
+      let get_lock = verified.write().unwrap();
+      while get_lock.get(i) {
+        i += 1;
+        if i >= end {
+          drop(get_lock);
+          return results;
+        };
+      }
+      
+      Polynomial::new(f3_bijection(i as u64))
+    };
+    
+    let mut count = 1;
+    let mut smallest_poly = poly;
+
+
+    let mut permutations = vec![i];
+    for j in 0..transform_lut.len() { // loop over matrices
+      let perm_poly = poly.transform_by_matrix(&transform_lut[j]);
+      let inverse = f3_bijection_inverse(perm_poly.bits);
+      if inverse < i as u64 {
+        i += 1;
+        continue 'outer;
+      }
+      if perm_poly.bits.count_ones() <= smallest_poly.bits.count_ones() {
+        if perm_poly.bits < smallest_poly.bits {
+          smallest_poly = perm_poly;
         }
       }
-      iso_polys.push(IsoPolynomial { representative: smallest_poly, size: count});
+      permutations.push(inverse as usize);
     }
+    
+    for p in permutations {
+      {
+        let mut get_lock = verified.write().unwrap();
+        if get_lock.get(p) == false {
+          count += 1;
+          get_lock.set(p, true);
+        }
+        Polynomial::new(f3_bijection(i as u64))
+      };
+    }
+
+    results.push(IsoPolynomial { representative: smallest_poly , size: count });
   }
-  iso_polys
+  results
 }
