@@ -4,7 +4,7 @@ use crate::{DPLUS2_CHOOSE_2, algebraic_types::Matrix, DEGREE, FIELD_ORDER, COEFF
 pub fn internal_add(a: u64,b: u64) -> u64 {
   match FIELD_ORDER {
     2 => internal_add_f2(a,b),
-    3 => internal_add_f3(a,b),
+    3 => internal_add_f3_fast(a,b),
     _ => panic!("Field size not supported"),
   }
 }
@@ -33,7 +33,7 @@ pub fn internal_add_f3(a: u64, b: u64) -> u64 {
 
 #[allow(dead_code)]
 pub fn internal_add_f3_fast(a: u64,b: u64) -> u64 {
-  const M2: u64 = 0xAAAA; 
+  const M2: u64 = 0xAAAAAAAAAAAAAAAA; 
   let na=!a;
   let nb=!b;
   let a4= ((M2 & na) >> 1) & na;
@@ -94,10 +94,10 @@ impl Polynomial {
   pub fn transform_by_matrix(self, transform_lut: &Vec<u64>) -> Polynomial {
     let mut bits = 0;
     for i in 0..DPLUS2_CHOOSE_2 {
-      let coeff = (self.bits >> (i*COEFF_BIT_SIZE)) & (!(!0 << COEFF_BIT_SIZE)) % FIELD_ORDER as u64;
+      let coeff = (self.bits >> (i*COEFF_BIT_SIZE)) & (!(!0 << COEFF_BIT_SIZE));
       if coeff > 0 {
         let new_bits = Polynomial::multiply_bits_by_constant(transform_lut[i], coeff);
-        bits = internal_add(bits, new_bits);
+                bits = internal_add(bits, new_bits);
       }
     }
     Polynomial { bits: bits }
@@ -115,6 +115,10 @@ impl Polynomial {
         }
       }
     }
+  }
+
+  pub fn mul_constant(self, constant: u64) -> Polynomial {
+    Polynomial { bits: Polynomial::multiply_bits_by_constant(self.bits, constant) }
   }
     
 

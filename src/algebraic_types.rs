@@ -66,9 +66,6 @@ impl Matrix {
         data[j/3][j%3] = Matrix::get_ternary_digit(i, j) as u8;
       }
       let matrix = Matrix::new(data);
-      if i == 728 {
-        println!("");
-      }
 
       if matrix.determinant() % 3 == 1 || matrix.determinant() % 3 == -2 {
         pgl3_f3.push(matrix);
@@ -168,7 +165,7 @@ fn f3_bijection_inverse(index: u64) -> u64 {
   let mut mult = 1;
   let mut res = 0;
   for i in 0..32 {
-    res += mult * ((index >> 2*i) % 3); 
+    res += mult * ((index >> 2*i) & 0b11); 
     mult *= 3;
   }
   res
@@ -184,23 +181,24 @@ fn f3_bijection(mut index: u64) -> u64 {
 }
 
 pub fn generate_iso_polynomials(transform_lut: &Vec<Vec<u64>>) -> Vec<IsoPolynomial>{
-  let mut things = PackedBool::new(usize::pow(3, 21)+7);
+  let mut things = PackedBool::new(usize::pow(FIELD_ORDER, DPLUS2_CHOOSE_2 as u32)+7);
 
   let mut iso_polys = Vec::new();
   let mut checked_polynomials = 0;
   let mut checkpoint = 0;
-  let mut bits = 0;
-  for i in 1..((usize::pow(3, 21))/1000) {
-    bits = poly_next(bits);
+  let mut j = 0;
+  // let mut bits = 0;
+  for i in 1..POLYNOMIALS as usize {
+    // bits = poly_next(bits);
     if things.get(i) == false {
       things.set(i, true);
-      let poly = Polynomial::new(bits);
-      // let poly = Polynomial::new(index_to_poly_map(i as u64));
+      // let poly = Polynomial::new(bits);
+      let poly = Polynomial::new(index_to_poly_map(i as u64));
       
       let mut count = 1;
       let mut smallest_poly = poly;
-      for i in 0..transform_lut.len() { // loop over matrices
-        let perm_poly = poly.transform_by_matrix(&transform_lut[i]);
+      for matrix_lut in transform_lut { // loop over matrices
+        let perm_poly = poly.transform_by_matrix(&matrix_lut);
         let inverse = poly_to_index_map(perm_poly.bits);
 
         if things.get(inverse as usize) == false {
@@ -219,7 +217,8 @@ pub fn generate_iso_polynomials(transform_lut: &Vec<Vec<u64>>) -> Vec<IsoPolynom
       checked_polynomials += count;
       if i > checkpoint {
         checkpoint += CHUNK_SIZE;
-        println!("Checked polynomials: {}/{} | Percentage: {:.3}%", checked_polynomials, POLYNOMIALS,  checked_polynomials as f64 / POLYNOMIALS as f64 * 100.0 );
+        println!("{:2}: Checked polynomials: {}/{} | Percentage: {:.3}%", j , checked_polynomials, POLYNOMIALS,  checked_polynomials as f64 / POLYNOMIALS as f64 * 100.0 );
+        j += 1;
       }
     }
   }

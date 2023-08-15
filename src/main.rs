@@ -56,7 +56,7 @@ fn main() {
   println!("Generating took: {:?}", (lookup_time-start_time));
   println!();
   
-
+  
 
   let results = if MULTI_THREADING {
     //
