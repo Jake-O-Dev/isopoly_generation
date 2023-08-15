@@ -25,7 +25,7 @@ const DPLUS2_CHOOSE_2: usize = ((DEGREE+2) * (DEGREE+1)) / 2;
 const POLYNOMIALS: usize = (FIELD_SIZE.pow(DPLUS2_CHOOSE_2 as u32) - 1) / (FIELD_SIZE - 1);
 
 const PRINTING: bool = true;
-const NUM_THREADS: usize = 1;
+const NUM_THREADS: usize = 8;
 const CHUNK_SIZE: usize = 1024*64;
 
 const FILE_NAME: &str = "./output.txt";

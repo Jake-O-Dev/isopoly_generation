@@ -212,6 +212,10 @@ pub fn find_isomorphisms(start: usize, end: usize, transform_lut: &Vec<Vec<u64>>
         i += 1;
         continue 'outer;
       }
+      if verified.read().unwrap().get(inverse as usize) {
+        i += 1;
+        continue 'outer;
+      } 
       if perm_poly.bits.count_ones() <= smallest_poly.bits.count_ones() {
         if perm_poly.bits < smallest_poly.bits {
           smallest_poly = perm_poly;
