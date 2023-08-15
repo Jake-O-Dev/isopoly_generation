@@ -2,7 +2,7 @@ use std::sync::RwLock;
 
 use std::num::Wrapping;
 
-use crate::{POLYNOMIALS, COEFF_BIT_SIZE, FIELD_ORDER, DPLUS2_CHOOSE_2};
+use crate::{POLYNOMIALS, COEFF_BIT_SIZE, FIELD_ORDER, DPLUS2_CHOOSE_2, CHUNK_SIZE};
 use crate::polynomials::{Term, Polynomial};
 
 
@@ -187,17 +187,23 @@ pub fn generate_iso_polynomials(transform_lut: &Vec<Vec<u64>>) -> Vec<IsoPolynom
   let mut things = PackedBool::new(usize::pow(3, 21)+7);
 
   let mut iso_polys = Vec::new();
+  let mut checked_polynomials = 0;
+  let mut checkpoint = 0;
   for i in 1..((usize::pow(3, 21))/1000) {
     if things.get(i) == false {
       things.set(i, true);
-    let poly = Polynomial::new(f3_bijection(i as u64));
+      let poly = Polynomial::new(index_to_poly_map(i as u64));
+      
       let mut count = 1;
       let mut smallest_poly = poly;
       for i in 0..transform_lut.len() { // loop over matrices
         let perm_poly = poly.transform_by_matrix(&transform_lut[i]);
-        if things.get(f3_bijection_inverse(perm_poly.bits) as usize) == false {
+        let inverse = poly_to_index_map(perm_poly.bits);
+
+        if things.get(inverse as usize) == false {
           count += 1;
-          things.set(f3_bijection_inverse(perm_poly.bits) as usize, true);
+          things.set(inverse as usize, true);
+
           if perm_poly.bits.count_ones() <= smallest_poly.bits.count_ones() {
             if perm_poly.bits < smallest_poly.bits {
               smallest_poly = perm_poly;
@@ -206,8 +212,15 @@ pub fn generate_iso_polynomials(transform_lut: &Vec<Vec<u64>>) -> Vec<IsoPolynom
         }
       }
       iso_polys.push(IsoPolynomial { representative: smallest_poly, size: count});
+
+      checked_polynomials += count;
+      if i > checkpoint {
+        checkpoint += CHUNK_SIZE;
+        println!("Checked polynomials: {}/{} | Percentage: {:.3}%", checked_polynomials, POLYNOMIALS,  checked_polynomials as f64 / POLYNOMIALS as f64 * 100.0 );
+      }
     }
   }
+  
   iso_polys
 }
 
