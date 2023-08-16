@@ -4,7 +4,7 @@ use crate::{DPLUS2_CHOOSE_2, algebraic_types::Matrix, DEGREE, FIELD_ORDER, COEFF
 pub fn internal_add(a: u64,b: u64) -> u64 {
   match FIELD_ORDER {
     2 => internal_add_f2(a,b),
-    3 => internal_add_f3(a,b),
+    3 => internal_add_f3_fast(a,b),
     _ => panic!("Field size not supported"),
   }
 }
@@ -13,9 +13,10 @@ pub fn internal_add_f2(a: u64,b: u64) -> u64 {
   a ^ b
 }
 
+#[allow(dead_code)]
 pub fn internal_add_f3(a: u64, b: u64) -> u64 {
-  const M1: u64 = 0x5555;
-  const M2: u64 = 0xAAAA;
+  const M1: u64 = 0x5555555555555555;
+  const M2: u64 = 0xAAAAAAAAAAAAAAAA;
 
   let xor = a^b;
   let and = a&b;
@@ -31,9 +32,8 @@ pub fn internal_add_f3(a: u64, b: u64) -> u64 {
   (mul ^ xor) | one | two
 }
 
-#[allow(dead_code)]
 pub fn internal_add_f3_fast(a: u64,b: u64) -> u64 {
-  const M2: u64 = 0xAAAA; 
+  const M2: u64 = 0xAAAAAAAAAAAAAAAA; 
   let na=!a;
   let nb=!b;
   let a4= ((M2 & na) >> 1) & na;
@@ -94,9 +94,12 @@ impl Polynomial {
   pub fn transform_by_matrix(self, transform_lut: &Vec<u64>) -> Polynomial {
     let mut bits = 0;
     for i in 0..DPLUS2_CHOOSE_2 {
-      let coeff = (self.bits >> (i*COEFF_BIT_SIZE)) & (!(!0 << COEFF_BIT_SIZE)) % FIELD_ORDER as u64;
+      let coeff = (self.bits >> (i*COEFF_BIT_SIZE)) & (!(!0 << COEFF_BIT_SIZE));
       if coeff > 0 {
         let new_bits = Polynomial::multiply_bits_by_constant(transform_lut[i], coeff);
+        if new_bits > 17592186044416 {
+          panic!("GAAT FOUT");
+        }
         bits = internal_add(bits, new_bits);
       }
     }
@@ -213,7 +216,7 @@ pub fn polynomial_product(a: Vec<Term>, b: Vec<Term>, c: Vec<Term>) -> Vec<Term>
         let term = Term { x_deg: t1.x_deg + t2.x_deg + t3.x_deg, 
                           y_deg: t1.y_deg + t2.y_deg + t3.y_deg, 
                           z_deg: t1.z_deg + t2.z_deg + t3.z_deg, 
-                          constant: (t1.constant * t2.constant * t3.constant) % FIELD_ORDER as u8};
+                          constant: (t1.constant * t2.constant * t3.constant) % FIELD_ORDER as u8}; // TODO: F4 wont work like this
         result.push(term);
       }
     }

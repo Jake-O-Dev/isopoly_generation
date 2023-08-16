@@ -2,7 +2,7 @@ use std::sync::RwLock;
 
 use std::num::Wrapping;
 
-use crate::{POLYNOMIALS, COEFF_BIT_SIZE, FIELD_ORDER, DPLUS2_CHOOSE_2, CHUNK_SIZE};
+use crate::{POLYNOMIALS, COEFF_BIT_SIZE, FIELD_ORDER, CHUNK_SIZE, DPLUS2_CHOOSE_2};
 use crate::polynomials::{Term, Polynomial};
 
 
@@ -163,20 +163,22 @@ pub fn next_f3(bits: u64) -> u64 {
   (Wrapping(bits) - Wrapping(t)).0 & t
 }
 
-fn f3_bijection_inverse(index: u64) -> u64 {
+// Take a polynomial to an index
+pub fn f3_bijection_inverse(index: u64) -> u64 {
   // const DIGIT_LOOKUP: [u64;16]= [1, 3, 9, 27, 81, 243, 729, 2187, 6561,19683,59049,177147,531441,1594323,4782969,14348907];
   let mut mult = 1;
   let mut res = 0;
-  for i in 0..32 {
-    res += mult * ((index >> 2*i) % 3); 
+  for i in 0..DPLUS2_CHOOSE_2 {
+    res += mult * ((index >> 2*i) & 0b11); 
     mult *= 3;
   }
   res
 }
 
-fn f3_bijection(mut index: u64) -> u64 {
+// Takes an index to a polynomial
+pub fn f3_bijection(mut index: u64) -> u64 {
   let mut res = 0;
-  for i in 0..32 {
+  for i in 0..DPLUS2_CHOOSE_2 {
     res += (index % 3) << COEFF_BIT_SIZE*i; 
     index /= 3;
   }
@@ -184,16 +186,18 @@ fn f3_bijection(mut index: u64) -> u64 {
 }
 
 pub fn generate_iso_polynomials(transform_lut: &Vec<Vec<u64>>) -> Vec<IsoPolynomial>{
-  let mut things = PackedBool::new(usize::pow(3, 21)+7);
+  let mut things = vec![false; usize::pow(FIELD_ORDER, DPLUS2_CHOOSE_2 as u32)+7];
+  //   let mut things = PackedBool::new(2*(usize::pow(3, 21)+7));
+
 
   let mut iso_polys = Vec::new();
   let mut checked_polynomials = 0;
   let mut checkpoint = 0;
   let mut bits = 0;
-  for i in 1..((usize::pow(3, 21))/1000) {
+  for i in 1..((usize::pow(FIELD_ORDER, DPLUS2_CHOOSE_2 as u32))) {
     bits = poly_next(bits);
-    if things.get(i) == false {
-      things.set(i, true);
+    if things[i] == false {
+      things[i] = true;
       let poly = Polynomial::new(bits);
       // let poly = Polynomial::new(index_to_poly_map(i as u64));
       
@@ -203,9 +207,9 @@ pub fn generate_iso_polynomials(transform_lut: &Vec<Vec<u64>>) -> Vec<IsoPolynom
         let perm_poly = poly.transform_by_matrix(&transform_lut[i]);
         let inverse = poly_to_index_map(perm_poly.bits);
 
-        if things.get(inverse as usize) == false {
+        if things[inverse as usize] == false {
           count += 1;
-          things.set(inverse as usize, true);
+          things[inverse as usize] = true;
 
           if perm_poly.bits.count_ones() <= smallest_poly.bits.count_ones() {
             if perm_poly.bits < smallest_poly.bits {
@@ -225,64 +229,4 @@ pub fn generate_iso_polynomials(transform_lut: &Vec<Vec<u64>>) -> Vec<IsoPolynom
   }
   
   iso_polys
-}
-
-
-pub fn find_isomorphisms(start: usize, end: usize, transform_lut: &Vec<Vec<u64>>, verified: &RwLock<PackedBool>) -> Vec<IsoPolynomial> {
-  let mut results: Vec<IsoPolynomial> = Vec::new();
-  
-  let mut i = start;
-
-  'outer: while i < end {
-    let poly = {
-      let get_lock = verified.write().unwrap();
-      while get_lock.get(i) {
-        i += 1;
-        if i >= end {
-          drop(get_lock);
-          return results;
-        };
-      }
-      
-      Polynomial::new(f3_bijection(i as u64))
-    };
-    
-    let mut count = 1;
-    let mut smallest_poly = poly;
-
-
-    let mut permutations = vec![i];
-    for j in 0..transform_lut.len() { // loop over matrices
-      let perm_poly = poly.transform_by_matrix(&transform_lut[j]);
-      let inverse = f3_bijection_inverse(perm_poly.bits);
-      if inverse < i as u64 {
-        i += 1;
-        continue 'outer;
-      }
-      if verified.read().unwrap().get(inverse as usize) {
-        i += 1;
-        continue 'outer;
-      } 
-      if perm_poly.bits.count_ones() <= smallest_poly.bits.count_ones() {
-        if perm_poly.bits < smallest_poly.bits {
-          smallest_poly = perm_poly;
-        }
-      }
-      permutations.push(inverse as usize);
-    }
-    
-    for p in permutations {
-      {
-        let mut get_lock = verified.write().unwrap();
-        if get_lock.get(p) == false {
-          count += 1;
-          get_lock.set(p, true);
-        }
-        Polynomial::new(f3_bijection(i as u64))
-      };
-    }
-
-    results.push(IsoPolynomial { representative: smallest_poly , size: count });
-  }
-  results
 }
