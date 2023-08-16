@@ -66,9 +66,6 @@ impl Matrix {
         data[j/3][j%3] = Matrix::get_ternary_digit(i, j) as u8;
       }
       let matrix = Matrix::new(data);
-      if i == 728 {
-        println!("");
-      }
 
       if matrix.determinant() % 3 == 1 || matrix.determinant() % 3 == -2 {
         pgl3_f3.push(matrix);
@@ -186,30 +183,29 @@ pub fn f3_bijection(mut index: u64) -> u64 {
 }
 
 pub fn generate_iso_polynomials(transform_lut: &Vec<Vec<u64>>) -> Vec<IsoPolynomial>{
-  let mut things = vec![false; usize::pow(FIELD_ORDER, DPLUS2_CHOOSE_2 as u32)+7];
-  //   let mut things = PackedBool::new(2*(usize::pow(3, 21)+7));
-
+  // let mut things = vec![false; usize::pow(FIELD_ORDER, DPLUS2_CHOOSE_2 as u32)+7];
+  let mut things = PackedBool::new(usize::pow(3, 21)+7);
 
   let mut iso_polys = Vec::new();
-  let mut checked_polynomials = 0;
+  let mut checked_polynomials: usize = 0;
   let mut checkpoint = 0;
   let mut bits = 0;
   for i in 1..((usize::pow(FIELD_ORDER, DPLUS2_CHOOSE_2 as u32))) {
     bits = poly_next(bits);
-    if things[i] == false {
-      things[i] = true;
+    if things.get(i) == false {
+      things.set(i, true);
       let poly = Polynomial::new(bits);
       // let poly = Polynomial::new(index_to_poly_map(i as u64));
       
       let mut count = 1;
       let mut smallest_poly = poly;
-      for i in 0..transform_lut.len() { // loop over matrices
-        let perm_poly = poly.transform_by_matrix(&transform_lut[i]);
+      for matrix_lut in transform_lut { // loop over matrices
+        let perm_poly = poly.transform_by_matrix(&matrix_lut);
         let inverse = poly_to_index_map(perm_poly.bits);
 
-        if things[inverse as usize] == false {
+        if things.get(inverse as usize) == false {
           count += 1;
-          things[inverse as usize] = true;
+          things.set(inverse as usize, true);
 
           if perm_poly.bits.count_ones() <= smallest_poly.bits.count_ones() {
             if perm_poly.bits < smallest_poly.bits {
@@ -220,10 +216,10 @@ pub fn generate_iso_polynomials(transform_lut: &Vec<Vec<u64>>) -> Vec<IsoPolynom
       }
       iso_polys.push(IsoPolynomial { representative: smallest_poly, size: count});
 
-      checked_polynomials += count;
+      checked_polynomials += count as usize;
       if i > checkpoint {
         checkpoint += CHUNK_SIZE;
-        println!("Checked polynomials: {}/{} | Percentage: {:.3}%", checked_polynomials, POLYNOMIALS,  checked_polynomials as f64 / POLYNOMIALS as f64 * 100.0 );
+        println!("{:2}: Checked polynomials: {}/{} | Percentage: {:.3}%", i , checked_polynomials, POLYNOMIALS,  checked_polynomials as f64 / POLYNOMIALS as f64 * 100.0 );
       }
     }
   }

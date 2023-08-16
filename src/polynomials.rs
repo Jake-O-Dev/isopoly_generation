@@ -97,9 +97,6 @@ impl Polynomial {
       let coeff = (self.bits >> (i*COEFF_BIT_SIZE)) & (!(!0 << COEFF_BIT_SIZE));
       if coeff > 0 {
         let new_bits = Polynomial::multiply_bits_by_constant(transform_lut[i], coeff);
-        if new_bits > 17592186044416 {
-          panic!("GAAT FOUT");
-        }
         bits = internal_add(bits, new_bits);
       }
     }
@@ -118,6 +115,10 @@ impl Polynomial {
         }
       }
     }
+  }
+
+  pub fn mul_constant(self, constant: u64) -> Polynomial {
+    Polynomial { bits: Polynomial::multiply_bits_by_constant(self.bits, constant) }
   }
     
 
