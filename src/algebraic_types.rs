@@ -155,6 +155,8 @@ fn poly_next(poly: u64) -> u64 {
   }
 }
 
+
+
 pub fn next_f3(bits: u64) -> u64 {
   let t = ((bits ^ 0xAAAAAAAAAAAAAAAA) | 0x5555555555555555) >> 1;
   (Wrapping(bits) - Wrapping(t)).0 & t
@@ -200,12 +202,19 @@ pub fn generate_iso_polynomials(transform_lut: &Vec<Vec<u64>>) -> Vec<IsoPolynom
       let mut count = 1;
       let mut smallest_poly = poly;
       for matrix_lut in transform_lut { // loop over matrices
-        let perm_poly = poly.transform_by_matrix(&matrix_lut);
-        let inverse = poly_to_index_map(perm_poly.bits);
+        // get the transformed polynomial with leading coeff zero
+        let perm_poly = poly.transform_by_matrix(&matrix_lut).multiply_leading_coeff_to_unit();
+        let index = poly_to_index_map(perm_poly.bits);
 
-        if things.get(inverse as usize) == false {
+        if things.get(index as usize) == false {
           count += 1;
-          things.set(inverse as usize, true);
+          things.set(index as usize, true);
+
+          // make sure to turn off all other multiples of this polynomial
+          if FIELD_ORDER == 3 {
+            let new_index = poly_to_index_map(perm_poly.mul_constant(2).bits);
+            things.set(new_index as usize, true);
+          }
 
           if perm_poly.bits.count_ones() <= smallest_poly.bits.count_ones() {
             if perm_poly.bits < smallest_poly.bits {
