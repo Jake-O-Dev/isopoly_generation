@@ -218,7 +218,7 @@ pub fn generate_iso_polynomials(transform_lut: &Vec<Vec<u64>>) -> Vec<IsoPolynom
 
       checked_polynomials += count as usize;
       if i > checkpoint {
-        checkpoint += CHUNK_SIZE;
+        checkpoint = i + CHUNK_SIZE;
         println!("{:2}: Checked polynomials: {}/{} | Percentage: {:.3}%", i , checked_polynomials, POLYNOMIALS,  checked_polynomials as f64 / POLYNOMIALS as f64 * 100.0 );
       }
     }
