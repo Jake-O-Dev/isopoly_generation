@@ -12,7 +12,7 @@ mod algebraic_types;
 #[allow(non_camel_case_types)]
 mod polynomials;
 
-const DEGREE: usize = 5;
+const DEGREE: usize = 4;
 const FIELD_ORDER: usize = 3;
 
 const COEFF_BIT_SIZES: [usize; 5] = [1,1,1,2,2];

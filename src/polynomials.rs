@@ -117,12 +117,34 @@ impl Polynomial {
     }
   }
 
+  fn is_leading_coeff_unit(poly: Polynomial) -> bool {
+    match FIELD_ORDER {
+      2 => true,
+      3 => poly.bits.leading_zeros() % 2 == 1,
+      _ => panic!("Field size not supported"),
+    }
+  }
+  
+  pub fn multiply_leading_coeff_to_unit(self) -> Polynomial {
+    match FIELD_ORDER {
+      2 => self,
+      3 => {
+        if !Polynomial::is_leading_coeff_unit(self) {
+          Polynomial::new(Polynomial::multiply_bits_by_2_f3(self.bits))
+        } else {
+          self
+        }
+      },
+      _ => panic!("Field size not supported"),
+    }
+  }
+
   pub fn mul_constant(self, constant: u64) -> Polynomial {
     Polynomial { bits: Polynomial::multiply_bits_by_constant(self.bits, constant) }
   }
     
 
-  fn multiply_bits_by_2_f3(bits: u64) -> u64 {
+  pub fn multiply_bits_by_2_f3(bits: u64) -> u64 {
     const M1: u64 = 0x5555555555555555; 
     const M2: u64 = 0xAAAAAAAAAAAAAAAA;
     let a1 = (bits & M2) >> 1;
