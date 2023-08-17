@@ -195,15 +195,14 @@ pub fn generate_iso_polynomials(transform_lut: &Vec<Vec<u64>>) -> Vec<IsoPolynom
   for i in 1..((usize::pow(FIELD_ORDER, DPLUS2_CHOOSE_2 as u32))) {
     bits = poly_next(bits);
     if things.get(i) == false {
-      things.set(i, true);
       let poly = Polynomial::new(bits);
       // let poly = Polynomial::new(index_to_poly_map(i as u64));
       
-      let mut count = 1;
+      let mut count = 0;
       let mut smallest_poly = poly;
       for matrix_lut in transform_lut { // loop over matrices
         // get the transformed polynomial with leading coeff zero
-        let perm_poly = poly.transform_by_matrix(&matrix_lut).multiply_leading_coeff_to_unit();
+        let perm_poly = poly.transform_by_matrix(&matrix_lut);
         let index = poly_to_index_map(perm_poly.bits);
 
         if things.get(index as usize) == false {
@@ -229,6 +228,9 @@ pub fn generate_iso_polynomials(transform_lut: &Vec<Vec<u64>>) -> Vec<IsoPolynom
       if i > checkpoint {
         checkpoint = i + CHUNK_SIZE;
         println!("{:2}: Checked polynomials: {}/{} | Percentage: {:.3}%", i , checked_polynomials, POLYNOMIALS,  checked_polynomials as f64 / POLYNOMIALS as f64 * 100.0 );
+      }
+      if checked_polynomials == POLYNOMIALS {
+        break;
       }
     }
   }
