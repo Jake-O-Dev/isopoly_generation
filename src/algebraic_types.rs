@@ -190,7 +190,7 @@ pub fn generate_iso_polynomials(transform_lut: &Vec<Vec<u64>>) -> Vec<IsoPolynom
   let mut checked_polynomials: usize = 0;
   let mut checkpoint = 0;
   let mut bits = 0;
-  for i in 1..((usize::pow(FIELD_ORDER, DPLUS2_CHOOSE_2 as u32))) {
+  for i in 1..((usize::pow(FIELD_ORDER, DPLUS2_CHOOSE_2 as u32)))/1000000 {
     bits = poly_next(bits);
     if things.get(i) == false {
       things.set(i, true);
