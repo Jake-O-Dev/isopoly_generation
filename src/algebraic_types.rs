@@ -192,29 +192,27 @@ pub fn generate_iso_polynomials(transform_lut: &Vec<Vec<u64>>) -> Vec<IsoPolynom
   let mut checked_polynomials: usize = 0;
   let mut checkpoint = 0;
   let mut bits = 0;
-  for i in 1..((usize::pow(FIELD_ORDER, DPLUS2_CHOOSE_2 as u32)))/1000000 {
+  for i in 1..((usize::pow(FIELD_ORDER, DPLUS2_CHOOSE_2 as u32))) {
     bits = poly_next(bits);
     if things.get(i) == false {
-      things.set(i, true);
       let poly = Polynomial::new(bits);
-      // let poly = Polynomial::new(index_to_poly_map(i as u64));
       
-      let mut count = 1;
+      let mut count = 0;
       let mut smallest_poly = poly;
       for matrix_lut in transform_lut { // loop over matrices
         // get the transformed polynomial with leading coeff zero
-        let perm_poly = poly.transform_by_matrix(&matrix_lut).multiply_leading_coeff_to_unit();
+        let perm_poly = poly.transform_by_matrix(&matrix_lut);
         let index = poly_to_index_map(perm_poly.bits);
 
         if things.get(index as usize) == false {
           count += 1;
           things.set(index as usize, true);
 
-          // make sure to turn off all other multiples of this polynomial
           if FIELD_ORDER == 3 {
             let new_index = poly_to_index_map(perm_poly.mul_constant(2).bits);
             things.set(new_index as usize, true);
           }
+          // make sure to turn off all other multiples of this polynomial
 
           if perm_poly.bits.count_ones() <= smallest_poly.bits.count_ones() {
             if perm_poly.bits < smallest_poly.bits {
